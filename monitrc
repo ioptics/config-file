@@ -1,0 +1,41 @@
+set daemon 60
+set logfile syslog facility log_daemon
+set mailserver localhost
+set alert inneroptics@gmail.com
+ 
+ 
+check process httpd with pidfile /var/run/apache2.pid
+   group www-data
+   start program "/etc/init.d/apache2 start"
+   stop program "/etc/init.d/apache2 stop"
+   if failed host localhost port 80 protocol http
+      and request "/" then alert
+   if cpu is greater than 60% for 2 cycles then alert
+   if cpu > 80% for 5 cycles then restart
+   if children > 250 then restart
+   if loadavg(5min) greater than 10 for 8 cycles then alert
+   if 3 restarts within 5 cycles then timeout
+ 
+check process sshd with pidfile /var/run/sshd.pid
+   start program "/etc/init.d/ssh start"
+   stop program "/etc/init.d/ssh stop"
+   if failed port 22 protocol ssh then restart
+   if 5 restarts within 5 cycles then timeout
+ 
+check process mysql with pidfile /var/run/mysqld/mysqld.pid
+   group database
+   start program = "/etc/init.d/mysql start"
+   stop program = "/etc/init.d/mysql stop"
+   if failed host 127.0.0.1 port 3306 then restart
+   if 5 restarts within 5 cycles then timeout
+ 
+check process postfix with pidfile /var/spool/postfix/pid/master.pid
+   group mail
+   start program = "/etc/init.d/postfix start"
+   stop program = "/etc/init.d/postfix stop"
+   if failed port 25 protocol smtp then restart
+   if 5 restarts within 5 cycles then timeout
+   
+check device rootfs with path /dev/sda1
+   if space usage > 90% 5 times within 15 cycles then alert
+   mode passive
